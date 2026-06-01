@@ -1,0 +1,72 @@
+#!/bin/sh
+
+ROFI_STYLE='
+window {
+    width: 14em;
+    location: northwest;
+}
+listview {
+    lines: 5;
+    fixed-height: false;
+}
+entry {
+  placeholder: "";
+}
+num-filtered-rows {
+  enabled: false;
+}
+num-rows {
+  enabled: false;
+}
+'
+
+power_menu() {
+    options="Shutdown\nRestart\nLock\nSleep\nLogout"
+
+    chosen=$(echo -e "$options" | rofi -dmenu -i \
+        -p "Power Menu" \
+        -theme-str "$ROFI_STYLE")
+
+    case "$chosen" in
+        "Shutdown")
+            confirm_action "Shutdown the system?" "loginctl poweroff"
+            ;;
+        "Restart")
+            confirm_action "Restart the system?" "loginctl reboot"
+            ;;
+        "Lock")
+            loginctl lock-session
+            ;;
+        "Sleep")
+            confirm_action "Suspend the system?" "loginctl suspend"
+            ;;
+        "Logout")
+            confirm_action "Log out of the session?" "kill -9 -1"
+            ;;
+    esac
+}
+
+confirm_action() {
+    message="$1"
+    command="$2"
+
+    confirm=$(printf "No\nYes" | rofi -dmenu -i \
+        -p "$message" \
+        -theme-str '
+            window { width: 16em; }
+            listview {
+                lines: 2;
+                fixed-height: false;
+            }
+        ')
+
+    if [ "$confirm" = "Yes" ]; then
+        eval "$command"
+    fi
+}
+
+if ! pidof rofi >/dev/null; then
+    power_menu
+else
+    pkill rofi
+fi

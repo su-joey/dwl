@@ -1,0 +1,3 @@
+#!/bin/sh
+
+exec dbus-launch --exit-with-session dwl -s 'dwl-startup' 2>/dev/null
