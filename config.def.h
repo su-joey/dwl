@@ -21,9 +21,10 @@ static const float fullscreen_bg[]         = {0.0f, 0.0f, 0.0f, 1.0f}; /* You ca
 static int log_level = WLR_ERROR;
 
 static const Rule rules[] = {
-	/* app_id             title       tags mask     isfloating   monitor */
-	{ "Gimp_EXAMPLE",     NULL,       0,            1,           -1 }, /* Start on currently visible tags floating, not tiled */
-	{ "firefox_EXAMPLE",  NULL,       1 << 8,       0,           -1 }, /* Start on ONLY tag "9" */
+	/* app_id             title         tags mask     isfloating   monitor scratchkey */
+	{ "Gimp_EXAMPLE",     NULL,         0,            1,           -1,     0 }, /* Start on currently visible tags floating, not tiled */
+	{ "firefox_EXAMPLE",  NULL,         1 << 8,       0,           -1,     0 }, /* Start on ONLY tag "9" */
+	{ NULL,               "scratchpad", 0,            1,           -1,     's' },
     /* default/example rule: can be changed but cannot be eliminated; at least one rule must exist */
 };
 
@@ -119,12 +120,16 @@ static const int cursor_timeout = 5;
 /* commands */
 static const char *termcmd[] = { "foot", NULL };
 static const char *menucmd[] = { "wmenu-run", NULL };
+static const char *scratchpadcmd[] = { "s", "foot", "-T", "scratchpad", NULL };
 
 static const Key keys[] = {
 	/* Note that Shift changes certain key codes: 2 -> at, etc. */
 	/* modifier                  key                  function          argument */
 	{ MODKEY,                    XKB_KEY_p,           spawn,            {.v = menucmd} },
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_Return,      spawn,            {.v = termcmd} },
+	{ MODKEY,                    XKB_KEY_grave,       togglescratch,    {.v = scratchpadcmd} },
+	/* { MODKEY,                 XKB_KEY_grave,       focusortogglescratch, {.v = scratchpadcmd} }, */
+	/* { MODKEY,                 XKB_KEY_grave,       focusortogglematchingscratch, {.v = scratchpadcmd} }, */
 	{ MODKEY,                    XKB_KEY_j,           focusstack,       {.i = +1} },
 	{ MODKEY,                    XKB_KEY_k,           focusstack,       {.i = -1} },
 	{ MODKEY,                    XKB_KEY_i,           incnmaster,       {.i = +1} },

@@ -21,9 +21,14 @@ static const float fullscreen_bg[]         = {0.0f, 0.0f, 0.0f, 1.0f}; /* You ca
 static int log_level = WLR_ERROR;
 
 static const Rule rules[] = {
-	/* app_id             title       tags mask     isfloating   monitor */
-	{ "Gimp_EXAMPLE",     NULL,       0,            1,           -1 }, /* Start on currently visible tags floating, not tiled */
-	{ "firefox_EXAMPLE",  NULL,       1 << 8,       0,           -1 }, /* Start on ONLY tag "9" */
+	/* app_id             title                  tags mask     isfloating   monitor scratchkey */
+	{ "Gimp_EXAMPLE",     NULL,                  0,            1,           -1,     0 }, /* Start on currently visible tags floating, not tiled */
+	{ "firefox_EXAMPLE",  NULL,                  1 << 8,       0,           -1,     0 }, /* Start on ONLY tag "9" */
+	{ NULL,               "scratchpadfoot",      0,            1,           -1,    'f' },
+	{ "keepassxc",        NULL,                  0,            1,           -1,    'k' },
+	// { "KeePassXC",        NULL,                  0,            1,           -1,    'k' },
+	{ NULL,               "scratchpadlf",        0,            1,           -1,    'l' },
+	{ NULL,               "scratchpadhtop",      0,            1,           -1,    'h' },
     /* default/example rule: can be changed but cannot be eliminated; at least one rule must exist */
 };
 
@@ -121,6 +126,11 @@ static const int cursor_timeout = 5;
 static const char *termcmd[] = { "foot", NULL };
 static const char *menucmd[] = { "wmenu-run", NULL };
 
+static const char *scratchpadfoot[] = { "f", "foot", "-T", "scratchpadfoot", NULL };
+static const char *scratchpadlf[]   = { "l", "foot", "-T", "scratchpadlf", "lf", NULL };
+static const char *scratchpadhtop[]   = { "h", "foot", "-T", "scratchpadhtop", "htop", NULL };
+static const char *scratchpadkeepassxc[] = { "k", "keepassxc", NULL };
+
 static const Key keys[] = {
 	/* Note that Shift changes certain key codes: 2 -> at, etc. */
 	/* modifier                  key                  function          argument */
@@ -128,6 +138,11 @@ static const Key keys[] = {
 	{ MODKEY,                    XKB_KEY_p,           spawn,            SHCMD("rofi -show drun") },
 
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_Return,      spawn,            {.v = termcmd} },
+
+	{ WLR_MODIFIER_ALT|WLR_MODIFIER_SHIFT, XKB_KEY_Return,       togglescratch,    {.v = scratchpadfoot} },
+	{ WLR_MODIFIER_ALT|WLR_MODIFIER_SHIFT, XKB_KEY_o,            togglescratch,    {.v = scratchpadlf} },
+	{ WLR_MODIFIER_ALT|WLR_MODIFIER_SHIFT, XKB_KEY_h,            togglescratch,    {.v = scratchpadhtop} },
+	{ MODKEY,                    XKB_KEY_x,            togglescratch,    {.v = scratchpadkeepassxc} },
 
 	{ MODKEY,                    XKB_KEY_w,           spawn,            {.v = (const char*[]){ "chromium", NULL } } },
 	{ MODKEY,                    XKB_KEY_o,           spawn,            {.v = (const char*[]){ "pcmanfm", NULL } } },
@@ -155,7 +170,7 @@ static const Key keys[] = {
 	{ MODKEY,                    XKB_KEY_m,           setlayout,        {.v = &layouts[2]} },
 	{ MODKEY,                    XKB_KEY_space,       setlayout,        {0} },
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_space,       togglefloating,   {0} },
-	{ MODKEY,                    XKB_KEY_e,           togglefullscreen, {0} },
+	{ MODKEY,                    XKB_KEY_s,           togglefullscreen, {0} },
 	{ MODKEY,                    XKB_KEY_0,           view,             {.ui = ~0} },
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_parenright,  tag,              {.ui = ~0} },
 	{ MODKEY,                    XKB_KEY_comma,       focusmon,         {.i = WLR_DIRECTION_LEFT} },
