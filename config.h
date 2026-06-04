@@ -6,13 +6,15 @@
 /* appearance */
 static const int sloppyfocus               = 1;  /* focus follows mouse */
 static const int bypass_surface_visibility = 0;  /* 1 means idle inhibitors will disable idle tracking even if it's surface isn't visible  */
-static const unsigned int borderpx         = 1;  /* border pixel of windows */
+static const unsigned int borderpx         = 0;  /* border pixel of windows */
 static const float rootcolor[]             = COLOR(0x222222ff);
 static const float bordercolor[]           = COLOR(0x444444ff);
 static const float focuscolor[]            = COLOR(0x005577ff);
 static const float urgentcolor[]           = COLOR(0xff0000ff);
 /* This conforms to the xdg-protocol. Set the alpha to zero to restore the old behavior */
 static const float fullscreen_bg[]         = {0.0f, 0.0f, 0.0f, 1.0f}; /* You can also use glsl colors */
+static const float default_opacity_unfocus = 0.50f;
+static const float default_opacity_focus   = 1.00f;
 static int enableautoswallow = 1; /* enables autoswallowing newly spawned clients */
 static float swallowborder = 1.0f; /* add this multiplied by borderpx to border when a client is swallowed */
 
@@ -23,15 +25,15 @@ static float swallowborder = 1.0f; /* add this multiplied by borderpx to border 
 static int log_level = WLR_ERROR;
 
 static const Rule rules[] = {
-	/* app_id             title                  tags mask     isfloating   isterm   noswallow   monitor scratchkey */
-	{ "foot",             NULL,                  0,            0,           1,       1,          -1,     0 }, /* terminals swallow their children */
-	{ "Gimp_EXAMPLE",     NULL,                  0,            1,           0,       0,          -1,     0 }, /* Start on currently visible tags floating, not tiled */
-	{ "firefox_EXAMPLE",  NULL,                  1 << 8,       0,           0,       0,          -1,     0 }, /* Start on ONLY tag "9" */
-	{ NULL,               "scratchpadfoot",      0,            1,           0,       0,          -1,    'f' },
-	{ "keepassxc",        NULL,                  0,            1,           0,       0,          -1,    'k' },
-	// { "KeePassXC",        NULL,                  0,            1,           0,       0,          -1,    'k' },
-	{ NULL,               "scratchpadlf",        0,            1,           0,       0,          -1,    'l' },
-	{ NULL,               "scratchpadhtop",      0,            1,           0,       0,          -1,    'h' },
+	/* app_id             title                  tags mask     isfloating   alpha focus   alpha unfocus   isterm   noswallow   monitor scratchkey */
+	{ "foot",             NULL,                  0,            0,           1.00f,         0.70f,           1,       1,          -1,     0 }, /* terminals swallow their children */
+	{ "Gimp_EXAMPLE",     NULL,                  0,            1,           1.00f,         0.20f,           0,       0,          -1,     0 }, /* Start on currently visible tags floating, not tiled */
+	{ "firefox_EXAMPLE",  NULL,                  1 << 8,       0,           1.00f,         1.00f,           0,       0,          -1,     0 }, /* Start on ONLY tag "9" */
+	{ NULL,               "scratchpadfoot",      0,            1,           1.00f,         0.70f,           0,       0,          -1,    'f' },
+	{ "keepassxc",        NULL,                  0,            1,           1.00f,         0.70f,           0,       0,          -1,    'k' },
+	// { "KeePassXC",        NULL,                  0,            1,           1.00f,         0.70f,           0,       0,          -1,    'k' },
+	{ NULL,               "scratchpadlf",        0,            1,           1.00f,         0.70f,           0,       0,          -1,    'l' },
+	{ NULL,               "scratchpadhtop",      0,            1,           1.00f,         0.70f,           0,       0,          -1,    'h' },
     /* default/example rule: can be changed but cannot be eliminated; at least one rule must exist */
 };
 
@@ -171,6 +173,10 @@ static const Key keys[] = {
 	{ MODKEY,                    XKB_KEY_t,           setlayout,        {.v = &layouts[0]} },
 	{ MODKEY,                    XKB_KEY_f,           setlayout,        {.v = &layouts[1]} },
 	{ MODKEY,                    XKB_KEY_m,           setlayout,        {.v = &layouts[2]} },
+	{ MODKEY|WLR_MODIFIER_CTRL,  XKB_KEY_k,           setopacityunfocus, {.f = +0.1f} },
+	{ MODKEY|WLR_MODIFIER_CTRL,  XKB_KEY_j,           setopacityunfocus, {.f = -0.1f} },
+	{ MODKEY|WLR_MODIFIER_CTRL|WLR_MODIFIER_SHIFT, XKB_KEY_K, setopacityfocus, {.f = +0.1f} },
+	{ MODKEY|WLR_MODIFIER_CTRL|WLR_MODIFIER_SHIFT, XKB_KEY_J, setopacityfocus, {.f = -0.1f} },
 	{ MODKEY,                    XKB_KEY_space,       setlayout,        {0} },
 	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_space,       togglefloating,   {0} },
 	{ MODKEY,                    XKB_KEY_s,           togglefullscreen, {0} },
