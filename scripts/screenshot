@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+
+# screenshot — Wayland screenshot script
+#
+#   screenshot <region|monitor|full> [copy|save|both|annotate]
+#
+# mode:  
+#         region   drag a region in the screen
+#         monitor  click a whole monitor
+#         full     screenshot all monitors (combined together)
+#
+# dest:  
+#         copy     clipboard only
+#         save     file only
+#         both     file + clipboard (default)
+#         annotate open in satty — to annotate the screenshot (save/copy) from there
+#
+# Dependencies (Arch/Artix package names):
+#   grim         grim          capture the screen
+#   slurp        slurp         region / monitor selection
+#   wl-copy      wl-clipboard  copy the image to the Wayland clipboard
+#   satty        satty         annotation editor (annotate mode only)
+
+set -euo pipefail
+
+dir="${SCREENSHOT_DIR:-${XDG_PICTURES_DIR:-$HOME/Pictures}/Screenshots}"
+file="$dir/$(date +%Y-%m-%d_%H-%M-%S).png"
+mode="${1:-}"; dest="${2:-both}"
+
+[ -n "$mode" ] && [ "$mode" != -h ] && [ "$mode" != --help ] || { grep '^#' "$0" | tail -n +2 | cut -c3-; exit 0; }
+mkdir -p "$dir"
+
+case "$mode" in
+    region)  geom=$(slurp)    || exit 1; grim_args=(-g "$geom") ;;
+    monitor) geom=$(slurp -o) || exit 1; grim_args=(-g "$geom") ;;
+    full)    grim_args=() ;;
+    *) echo "bad mode: $mode" >&2; exit 1 ;;
+esac
+
+case "$dest" in
+    copy) grim "${grim_args[@]+"${grim_args[@]}"}" "$file"
+          wl-copy --type image/png < "$file"; rm -f "$file"; msg="copied" ;;
+    save) grim "${grim_args[@]+"${grim_args[@]}"}" "$file"
+          msg="saved to $file" ;;
+    both) grim "${grim_args[@]+"${grim_args[@]}"}" "$file"
+          wl-copy --type image/png < "$file"; msg="saved + copied: $file" ;;
+    annotate) grim "${grim_args[@]+"${grim_args[@]}"}" - \
+                  | satty --filename - --output-filename "$file" \
+                          --copy-command 'wl-copy --type image/png'
+              msg="opened in satty" ;;
+    *) echo "bad dest: $dest" >&2; exit 1 ;;
+esac
+
+echo "$msg"
+

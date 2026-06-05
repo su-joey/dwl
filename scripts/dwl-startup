@@ -1,13 +1,31 @@
 #!/bin/sh
- 
+
+# Export Wayland session info into the dbus session environment FIRST,
+# so portals and other services started below inherit it.
+dbus-update-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
+
 pipewire &
 pipewire-pulse &
 wireplumber &
 mako &
 foot --server &
+[ -f ~/wallpaper.png ] && swaybg -i ~/wallpaper.png &
 
-if [ -x "/usr/libexec/polkit-gnome-authentication-agent-1" ]; then
-    /usr/libexec/polkit-gnome-authentication-agent-1 &
+# Polkit authentication agent
+if [ -x "/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1" ]; then
+    /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1 &
 fi
 
-# exec dbus-update-environment WAYLAND_DISPLAY
+# Restart any stale portals so they pick up the current environment
+for portal in xdg-desktop-portal-gtk xdg-desktop-portal-wlr xdg-desktop-portal; do
+    pkill -e "$portal"
+done
+
+# Start the backends first, then the main portal
+/usr/lib/xdg-desktop-portal-wlr &
+/usr/lib/xdg-desktop-portal-gtk &
+
+sleep 1
+
+/usr/lib/xdg-desktop-portal &
+

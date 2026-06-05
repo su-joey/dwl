@@ -1,0 +1,40 @@
+#!/usr/bin/bash
+
+#
+# ocr — select a screen region, OCR it, copy the text to the clipboard.
+#
+# Dependencies (Arch/Artix package names):
+#   tesseract      tesseract        OCR engine
+#   <lang data>    tesseract-data-* language models (e.g. tesseract-data-eng)
+#   grim           grim             grab the screen region
+#   slurp          slurp            interactive region selection
+#   magick         imagemagick      pre-process the image (grayscale/resize/sharpen)
+#   wl-copy        wl-clipboard     copy text to the Wayland clipboard
+#   notify-send    libnotify        desktop notifications
+#   sed/grep/paste coreutils, sed, grep  text trimming and language list
+#
+
+set -euo pipefail
+
+img="$(mktemp --suffix=.png)"
+trap 'rm -f "$img"' EXIT
+
+# Use every installed tesseract language (minus the 'osd' orientation model).
+langs="$(tesseract --list-langs 2>/dev/null | tail -n +2 | grep -vx osd | paste -sd+)"
+
+grim -g "$(slurp -d)" "$img"
+magick "$img" -colorspace Gray -resize 300% -sharpen 0x1 "$img"
+
+text="$(tesseract "$img" - -l "$langs" --psm 6 2>/dev/null)"
+text="$(printf '%s' "$text" | sed -e 's/[[:space:]]*$//' -e '/./,$!d')"
+
+[[ -z "$text" ]] && {
+	echo "ocr: no text detected" >&2
+	notify-send -u critical "OCR failed" "No text detected"
+	exit 1
+}
+
+printf '%s' "$text" | wl-copy
+echo "$text"
+notify-send "OCR copied" "$text"
+

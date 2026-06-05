@@ -1,3 +1,45 @@
 #!/bin/sh
 
-exec dbus-launch --exit-with-session dwl -s 'dwl-startup' 2>/dev/null
+#export WAYLAND_DISPLAY=
+export XDG_CURRENT_DESKTOP=wlroots
+export XDG_SESSION_TYPE=wayland
+export XDG_SESSION_DESKTOP=wlroots
+export XDG_RUNTIME_DIR=/run/user/$(id -u)
+
+export GDK_BACKEND=wayland,x11
+# wayland;xcb lets Qt apps without Wayland support fall back to XWayland
+# instead of failing to launch.
+export QT_QPA_PLATFORM="wayland;xcb"
+export QT_QPA_PLATFORMTHEME=qt5ct
+export QT_AUTO_SCREEN_SCALE_FACTOR=1
+#export  QT_WAYLAND_DISABLE_WINDOWDECORATION=1
+export SDL_VIDEODRIVER=wayland
+export CLUTTER_BACKEND=wayland
+#export AQ_NO_ATOMIC=1
+# Enable if the cursor flickers, disappears, or lags. Mostly an NVIDIA fix;
+# Intel does hardware cursors fine, so normally not needed.
+#export WLR_NO_HARDWARE_CURSORS=1
+
+# Enable only if fullscreen apps/games/video glitch, tear, or go black.
+# Leaving it off keeps direct scanout = better fullscreen performance.
+#export WLR_SCENE_DISABLE_DIRECT_SCANOUT=1
+
+# Default is already off. Set to 1 only to force libliftoff hardware-plane
+# offloading (testing/debugging atomic commits).
+#export WLR_DRM_FORCE_LIBLIFTOFF=0
+
+#export WLR_DRM_NO_ATOMIC=1
+
+# Enable if you get visual corruption or a black screen at startup
+# (buggy-driver workaround). Intel normally handles DRM modifiers fine.
+#export WLR_DRM_NO_MODIFIERS=1
+
+#export WLR_RENDERER_ALLOW_SOFTWARE=1
+# Do NOT enable vulkan: Sandy Bridge has no Vulkan support. gles2 is required.
+#export WLR_RENDERER=vulkan
+export WLR_RENDERER=gles2
+
+# dbus-run-session is the modern replacement for `dbus-launch --exit-with-session`:
+# it starts a fresh session bus, runs dwl, and tears the bus down on exit.
+exec dbus-run-session -- dwl -s 'dwl-startup'
+
