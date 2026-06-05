@@ -1,0 +1,126 @@
+#!/bin/sh
+# clipboard-history [text|image] — browse cliphist history in rofi.
+#   text  (default) : only text entries
+#   image | img     : only image entries, shown with thumbnails
+#   Enter : copy the selected entry back to the clipboard
+#   Alt+d : delete the selected entry from history
+
+set -eu
+
+mode=${1:-text}
+
+# Toggle: if a rofi is already open, close it instead of stacking another.
+if pidof rofi >/dev/null 2>&1; then
+    pkill rofi
+    exit 0
+fi
+
+cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/cliphist/thumbs"
+mkdir -p "$cache_dir"
+
+# cliphist marks binary (image) rows with "[[ binary data ...]]".
+# icon_size: thumbnail size in image mode (override with CLIPBOARD_ICON_SIZE).
+icon_size=${CLIPBOARD_ICON_SIZE:-10em}
+# Show only the preview column in the list (hide cliphist's leading id), while
+# rofi still returns the full "id<tab>preview" row for decode/delete.
+display_cols=""
+case $mode in
+    image|img)
+        filter='/\[\[ binary data/!d'; prompt="Clipboard (images)"
+        # Big thumbnails tiled in a grid; hide the "[[ binary data ]]" label.
+        # Bounded window + fixed-height so it never runs off-screen.
+        theme="
+            window   { width: 34em; }
+            listview { lines: 2; columns: 3; fixed-height: true; scrollbar: true; spacing: 0.3em; }
+            element      { orientation: vertical; padding: 0.2em; }
+            element-icon { size: $icon_size; }
+            element-text { enabled: false; }
+        "
+        ;;
+    text)
+        filter='/\[\[ binary data/d';  prompt="Clipboard (text)"
+        # Display column 2 (preview) only; id stays in the returned value.
+        display_cols="-display-columns 2 -display-column-separator \t"
+        # Cap visible rows so it never runs off-screen.
+        theme="
+            window   { width: 45em; }
+            listview { lines: 10; fixed-height: true; scrollbar: true; }
+        "
+        ;;
+    *) echo "usage: clipboard-history [text|image]" >&2; exit 2 ;;
+esac
+
+# image_complete <file>: true if the file ends with a valid PNG/JPEG terminator.
+# Truncated clipboard images (cut at a buffer boundary) fail this, so we can skip
+# them instead of feeding a corrupt icon to rofi's loader (which spams errors).
+image_complete() {
+    [ -s "$1" ] || return 1
+    end=$(tail -c 8 "$1" | od -An -tx1 | tr -d ' \n')
+    case $end in
+        *49454e44ae426082) return 0 ;;   # PNG  IEND chunk
+        *ffd9)             return 0 ;;    # JPEG EOI marker
+    esac
+    return 1
+}
+
+# Emit the filtered list to rofi. For image rows, decode the entry to a cached
+# file (atomically) and attach it via rofi's "\0icon\x1f<path>" protocol.
+# Un-renderable (truncated) images are skipped entirely.
+build_list() {
+    cliphist list | sed "$filter" | while IFS= read -r line; do
+        id=${line%%	*}
+        case $line in
+            *"[[ binary data"*)
+                ext=$(printf '%s' "$line" | grep -oiE '(png|jpe?g|gif|bmp|webp|tiff?)' | head -1)
+                [ -n "$ext" ] || ext=png
+                thumb="$cache_dir/$id.$ext"
+                if [ ! -s "$thumb" ]; then
+                    tmp="$thumb.tmp.$$"
+                    cliphist decode "$id" >"$tmp" 2>/dev/null || true
+                    if image_complete "$tmp"; then mv -f "$tmp" "$thumb"; else rm -f "$tmp"; fi
+                fi
+                [ -s "$thumb" ] && printf '%s\0icon\x1f%s\n' "$line" "$thumb"
+                ;;
+            *)
+                printf '%s\n' "$line"
+                ;;
+        esac
+    done
+}
+
+while :; do
+    selected=$(build_list | rofi -dmenu -i \
+        -p "$prompt" \
+        -show-icons \
+        $display_cols \
+        -kb-custom-1 "Alt+d" \
+        -kb-custom-2 "Alt+c" \
+        -theme-str "$theme" \
+        -mesg "Enter: copy    Alt+d: delete    Alt+c: clear these") || rc=$?
+
+    rc=${rc:-0}
+
+    # Alt+c: clear every entry of the CURRENT mode only (text or images),
+    # leaving the other kind intact. No selection needed.
+    if [ "$rc" = 11 ]; then
+        cliphist list | sed "$filter" | while IFS= read -r line; do
+            printf '%s\n' "$line" | cliphist delete
+        done
+        exit 0
+    fi
+
+    # Empty selection (Esc / nothing matched) → quit.
+    [ -n "${selected:-}" ] || exit 0
+
+    case $rc in
+        10) # Alt+d: delete this entry, then reopen the menu.
+            printf '%s\n' "$selected" | cliphist delete
+            unset rc
+            ;;
+        *)  # Enter: copy back to clipboard and exit.
+            printf '%s\n' "$selected" | cliphist decode | wl-copy
+            exit 0
+            ;;
+    esac
+done
+

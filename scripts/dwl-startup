@@ -9,6 +9,14 @@ pipewire-pulse &
 wireplumber &
 mako &
 foot --server &
+
+# Keep clipboard contents alive after the source program closes
+wl-clip-persist --clipboard both &
+
+# Clipboard history (cliphist): watch text + images and store them
+wl-paste --type text  --watch cliphist store &
+wl-paste --type image --watch cliphist store &
+
 [ -f ~/wallpaper.png ] && swaybg -i ~/wallpaper.png &
 
 # Polkit authentication agent

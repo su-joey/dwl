@@ -30,6 +30,18 @@ mode="${1:-}"; dest="${2:-both}"
 [ -n "$mode" ] && [ "$mode" != -h ] && [ "$mode" != --help ] || { grep '^#' "$0" | tail -n +2 | cut -c3-; exit 0; }
 mkdir -p "$dir"
 
+# Copy a PNG to the clipboard, serialized across concurrent runs. Mashing the
+# screenshot key fires many wl-copy calls; if a new one takes clipboard
+# ownership while cliphist is still reading the previous image, cliphist stores
+# a truncated PNG. The lock + brief hold lets cliphist finish each read before
+# the next screenshot supersedes the selection.
+clip_copy() {
+    exec 9>"${XDG_RUNTIME_DIR:-/tmp}/screenshot-clip.lock"
+    flock 9
+    wl-copy --type image/png < "$1"
+    sleep 0.3
+}
+
 case "$mode" in
     region)  geom=$(slurp)    || exit 1; grim_args=(-g "$geom") ;;
     monitor) geom=$(slurp -o) || exit 1; grim_args=(-g "$geom") ;;
@@ -39,11 +51,11 @@ esac
 
 case "$dest" in
     copy) grim "${grim_args[@]+"${grim_args[@]}"}" "$file"
-          wl-copy --type image/png < "$file"; rm -f "$file"; msg="copied" ;;
+          clip_copy "$file"; rm -f "$file"; msg="copied" ;;
     save) grim "${grim_args[@]+"${grim_args[@]}"}" "$file"
           msg="saved to $file" ;;
     both) grim "${grim_args[@]+"${grim_args[@]}"}" "$file"
-          wl-copy --type image/png < "$file"; msg="saved + copied: $file" ;;
+          clip_copy "$file"; msg="saved + copied: $file" ;;
     annotate) grim "${grim_args[@]+"${grim_args[@]}"}" - \
                   | satty --filename - --output-filename "$file" \
                           --copy-command 'wl-copy --type image/png'
