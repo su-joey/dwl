@@ -6,14 +6,20 @@
 /* appearance */
 static const int sloppyfocus               = 1;  /* focus follows mouse */
 static const int bypass_surface_visibility = 0;  /* 1 means idle inhibitors will disable idle tracking even if it's surface isn't visible  */
+static const int smartgaps                 = 0;  /* 1 means no outer gap when there is only one window */
+static const int monoclegaps               = 0;  /* 1 means outer gaps in monocle layout */
 static const unsigned int borderpx         = 0;  /* border pixel of windows */
+static const unsigned int gappih           = 10; /* horiz inner gap between windows */
+static const unsigned int gappiv           = 10; /* vert inner gap between windows */
+static const unsigned int gappoh           = 10; /* horiz outer gap between windows and screen edge */
+static const unsigned int gappov           = 10; /* vert outer gap between windows and screen edge */
 static const float rootcolor[]             = COLOR(0x222222ff);
 static const float bordercolor[]           = COLOR(0x444444ff);
 static const float focuscolor[]            = COLOR(0x005577ff);
 static const float urgentcolor[]           = COLOR(0xff0000ff);
 /* This conforms to the xdg-protocol. Set the alpha to zero to restore the old behavior */
 static const float fullscreen_bg[]         = {0.0f, 0.0f, 0.0f, 1.0f}; /* You can also use glsl colors */
-static const float default_opacity_unfocus = 0.50f;
+static const float default_opacity_unfocus = 0.70f;
 static const float default_opacity_focus   = 1.00f;
 static int enableautoswallow = 1; /* enables autoswallowing newly spawned clients */
 static float swallowborder = 1.0f; /* add this multiplied by borderpx to border when a client is swallowed */
@@ -29,6 +35,7 @@ static const Rule rules[] = {
 	{ "foot",             NULL,                  0,            0,           1.00f,         0.70f,           1,       1,          -1,     0 }, /* terminals swallow their children */
 	{ "Gimp_EXAMPLE",     NULL,                  0,            1,           1.00f,         0.20f,           0,       0,          -1,     0 }, /* Start on currently visible tags floating, not tiled */
 	{ "firefox_EXAMPLE",  NULL,                  1 << 8,       0,           1.00f,         1.00f,           0,       0,          -1,     0 }, /* Start on ONLY tag "9" */
+	{ "chromium",         NULL,                  0,            0,           1.00f,         1.00f,           0,       0,          -1,     0 }, /* Start on currently visible tags floating, not tiled */
 	{ NULL,               "scratchpadfoot",      0,            1,           1.00f,         0.70f,           0,       0,          -1,    'f' },
 	{ "keepassxc",        NULL,                  0,            1,           1.00f,         0.70f,           0,       0,          -1,    'k' },
 	// { "KeePassXC",        NULL,                  0,            1,           1.00f,         0.70f,           0,       0,          -1,    'k' },
@@ -167,6 +174,27 @@ static const Key keys[] = {
 	{ MODKEY,                    XKB_KEY_d,           incnmaster,       {.i = -1} },
 	{ MODKEY,                    XKB_KEY_h,           setmfact,         {.f = -0.05f} },
 	{ MODKEY,                    XKB_KEY_l,           setmfact,         {.f = +0.05f} },
+	/* vanitygaps: gap sizes are set via the gappih/gappiv/gappoh/gappov settings above.
+	 * Default keybinds left disabled because MODKEY is already Super (LOGO)
+	 * here and they would collide with existing binds. Uncomment/remap if wanted. */
+	/*
+	{ MODKEY|WLR_MODIFIER_LOGO,  XKB_KEY_h,          incgaps,       {.i = +1 } },
+	{ MODKEY|WLR_MODIFIER_LOGO,  XKB_KEY_l,          incgaps,       {.i = -1 } },
+	{ MODKEY|WLR_MODIFIER_LOGO|WLR_MODIFIER_SHIFT,   XKB_KEY_H,      incogaps,      {.i = +1 } },
+	{ MODKEY|WLR_MODIFIER_LOGO|WLR_MODIFIER_SHIFT,   XKB_KEY_L,      incogaps,      {.i = -1 } },
+	{ MODKEY|WLR_MODIFIER_LOGO|WLR_MODIFIER_CTRL,    XKB_KEY_h,      incigaps,      {.i = +1 } },
+	{ MODKEY|WLR_MODIFIER_LOGO|WLR_MODIFIER_CTRL,    XKB_KEY_l,      incigaps,      {.i = -1 } },
+	{ MODKEY|WLR_MODIFIER_LOGO,  XKB_KEY_0,          togglegaps,     {0} },
+	{ MODKEY|WLR_MODIFIER_LOGO|WLR_MODIFIER_SHIFT,   XKB_KEY_parenright,defaultgaps,    {0} },
+	{ MODKEY,                    XKB_KEY_y,          incihgaps,     {.i = +1 } },
+	{ MODKEY,                    XKB_KEY_o,          incihgaps,     {.i = -1 } },
+	{ MODKEY|WLR_MODIFIER_CTRL,  XKB_KEY_y,          incivgaps,     {.i = +1 } },
+	{ MODKEY|WLR_MODIFIER_CTRL,  XKB_KEY_o,          incivgaps,     {.i = -1 } },
+	{ MODKEY|WLR_MODIFIER_LOGO,  XKB_KEY_y,          incohgaps,     {.i = +1 } },
+	{ MODKEY|WLR_MODIFIER_LOGO,  XKB_KEY_o,          incohgaps,     {.i = -1 } },
+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_Y,          incovgaps,     {.i = +1 } },
+	{ MODKEY|WLR_MODIFIER_SHIFT, XKB_KEY_O,          incovgaps,     {.i = -1 } },
+	*/
 	{ MODKEY,                    XKB_KEY_Return,      zoom,             {0} },
 	{ MODKEY,                    XKB_KEY_Tab,         view,             {0} },
 	{ MODKEY,                    XKB_KEY_q,           killclient,       {0} },
